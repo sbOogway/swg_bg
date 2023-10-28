@@ -1,8 +1,8 @@
-SRC = src/main.go
-TARGET = build/swg_gl
+SRC = main.c++
+TARGET = life
 
 $(TARGET): $(SRC)
-	go build -o $(TARGET) $(SRC)
+	g++ $(SRC) -o $(TARGET) -ljpeg
 
 run:
 	swg_tmr ./$(TARGET)
