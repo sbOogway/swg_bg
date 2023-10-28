@@ -49,7 +49,7 @@ std::vector<std::vector<int>> init_grid(std::vector<std::vector<int>> grid) {
 std::vector<std::vector<int>> new_generation(std::vector<std::vector<int>> grid) {
     std::vector<std::vector<int>> new_gen(width, std::vector<int>(height, 0));
     for (size_t i = 1; i < grid.size()-1; i++) {
-        for (size_t j = 1; j < grid[i].size()-1; j++) {
+        for (size_t j = 0; j < grid[i].size(); j++) {
             int neighbors = grid[i-1][j-1] + grid[i][j-1] + grid[i+1][j-1] +
             grid[i-1][j] + grid[i+1][j] +
             grid[i-1][j+1] + grid[i][j+1] + grid[i+1][j+1];
@@ -146,7 +146,7 @@ int main (int argc, char *argv[]) {
         export_jpg(bufferGrid);
         system("gsettings set org.gnome.desktop.background picture-uri 'file:///home/uomosucco/Desktop/dev/swg_bg/swg_test.jpg'");
 
-        // system("sleep 5");
+        system("sleep 3");
 
     }
 

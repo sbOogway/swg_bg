@@ -5,4 +5,4 @@ $(TARGET): $(SRC)
 	g++ $(SRC) -o $(TARGET) -ljpeg
 
 run:
-	swg_tmr ./$(TARGET)
+	./$(TARGET)
