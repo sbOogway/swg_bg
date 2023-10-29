@@ -54,7 +54,7 @@ std::vector<std::vector<int>> init_grid(std::vector<std::vector<int>> grid) {
 std::vector<std::vector<int>> new_generation(std::vector<std::vector<int>> grid) {
     std::vector<std::vector<int>> new_gen(width, std::vector<int>(height, 0));
     for (size_t x = 1; x < grid.size()-1; x++) {
-        for (size_t y = 0; y < grid[x].size()+1; y++) {
+        for (size_t y = 1; y < grid[x].size()-1; y++) {
             int neighbors = 
             grid[x-1][y-1] + grid[x][y-1] + grid[x+1][y-1] + 
             grid[x-1][y]   +                grid[x+1][y]   +                    
@@ -107,28 +107,28 @@ void export_jpg(std::vector<std::vector<int>>& grid) {
     jpeg_finish_compress(&cinfo);    
     fclose(outfile);
     jpeg_destroy_compress(&cinfo);
-    // free(row_buffer);
+    free(row_buffer);
     
 }
 
 
 int main (int argc, char *argv[]) {
-    screens = get_screens();
+    // screens = get_screens();
 
-    width = W * screens;
+    width = W;
     height = H;
 
-    std::vector<std::vector<int>> grid(width, std::vector<int>(height, 1));
+    // std::vector<std::vector<int>> grid(width, std::vector<int>(height, 1));
     std::vector<std::vector<int>> bufferGrid(width, std::vector<int>(height, 0));
 
 
-    std::cout << grid[width-1][height-1] << std::endl;
-    std::cout << bufferGrid[width-1][height-1] << std::endl;
-    bufferGrid = grid;
-    std::cout << bufferGrid[width-1][height-1] << std::endl;
+    // std::cout << grid[width-1][height-1] << std::endl;
+    // std::cout << bufferGrid[width-1][height-1] << std::endl;
+    // bufferGrid = grid;
+    // std::cout << bufferGrid[width-1][height-1] << std::endl;
 
 
-    std::cout << grid[0].size() << std::endl;
+    std::cout << bufferGrid.size() << "x" << bufferGrid[0].size() <<  std::endl;
 
     bufferGrid = init_grid(bufferGrid);  
     
@@ -147,7 +147,7 @@ int main (int argc, char *argv[]) {
 
         system("gsettings set org.gnome.desktop.background picture-uri 'file:///home/uomosucco/Desktop/dev/swg_bg/swg_test.jpg'");
 
-        system("sleep 3");
+        system("sleep 5");
 
     }   
 
