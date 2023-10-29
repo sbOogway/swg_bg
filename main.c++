@@ -5,11 +5,14 @@
 #include <string>
 #include <random>
 #include <vector>
+#include <chrono>
 
 #include <jpeglib.h>
 
 #define W 1920
 #define H 1080
+
+int scaling = 2;
 
 int screens = 0;
 int width = 0;
@@ -19,6 +22,8 @@ std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_int_distribution<int> distribution(0, 1);
 
+struct jpeg_compress_struct cinfo;
+struct jpeg_error_mgr jerr;
 char stdout_buffer[128];
 
 int get_screens() {
@@ -38,9 +43,9 @@ int get_screens() {
 }
 
 std::vector<std::vector<int>> init_grid(std::vector<std::vector<int>> grid) {
-    for (size_t i = 0; i < grid.size(); i++) {
-        for (size_t j = 0; j < grid[i].size(); j++) {
-            grid[i][j] = distribution(gen);
+    for (size_t x = 0; x < grid.size(); x++) {
+        for (size_t y = 0; y < grid[x].size(); y++) {
+            grid[x][y] = distribution(gen);
         }
     }
     return grid;
@@ -48,35 +53,30 @@ std::vector<std::vector<int>> init_grid(std::vector<std::vector<int>> grid) {
 
 std::vector<std::vector<int>> new_generation(std::vector<std::vector<int>> grid) {
     std::vector<std::vector<int>> new_gen(width, std::vector<int>(height, 0));
-    for (size_t i = 1; i < grid.size()-1; i++) {
-        for (size_t j = 0; j < grid[i].size()+1; j++) {
-            int neighbors = grid[i-1][j-1] + grid[i][j-1] + grid[i+1][j-1] +
-            grid[i-1][j] + grid[i+1][j] +
-            grid[i-1][j+1] + grid[i][j+1] + grid[i+1][j+1];
-
-            if (grid[i][j]) {
-                if (neighbors == 2 || neighbors == 3) {
-                    new_gen[i][j] = 1;
-                    continue;
-                }
+    for (size_t x = 1; x < grid.size()-1; x++) {
+        for (size_t y = 0; y < grid[x].size()+1; y++) {
+            int neighbors = 
+            grid[x-1][y-1] + grid[x][y-1] + grid[x+1][y-1] + 
+            grid[x-1][y]   +                grid[x+1][y]   +                    
+            grid[x-1][y+1] + grid[x][y+1] + grid[x+1][y+1];
+            switch (grid[x][y])
+            {
+            case 1:
+                if (neighbors == 2 || neighbors == 3) new_gen[x][y] = 1;
+                continue;
+            case 0:
+                if (neighbors == 3) new_gen[x][y] = 1;
+                continue;
             }
-            if (!grid[i][j]) {
-                if (neighbors == 3) {
-                    new_gen[i][j] = 1;
-                    continue;
-                }
-            }
-            new_gen[i][j] = 0;
+            new_gen[x][y] = 0;
+            
         }
     }
     return new_gen;
 }
 
-void export_jpg(std::vector<std::vector<int>> grid) {
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-
-    cinfo.err = jpeg_std_error(&jerr);    
+void export_jpg(std::vector<std::vector<int>>& grid) {   
+    cinfo.err = jpeg_std_error(&jerr);
 
     FILE* outfile = fopen("swg_test.jpg", "wb");
     if (!outfile) {
@@ -93,29 +93,22 @@ void export_jpg(std::vector<std::vector<int>> grid) {
 
     jpeg_set_defaults(&cinfo);
     jpeg_set_quality(&cinfo, 100, TRUE);
+    jpeg_start_compress(&cinfo, TRUE);    
 
-    jpeg_start_compress(&cinfo, TRUE);
+    JSAMPROW row_buffer = new JSAMPLE[cinfo.image_width * 3]; 
 
     while (cinfo.next_scanline < cinfo.image_height) {
-        JSAMPROW row_buffer = new JSAMPLE[cinfo.image_width * 3];
-
         for (int x = 0; x < width; x++) {
-            row_buffer[x * 3] = 0;
-            row_buffer[x * 3 + 2] = 0;
-            row_buffer[x * 3 + 1] =  grid[cinfo.next_scanline][x] ? 255 : 0;
-
+            row_buffer[x * 3] = row_buffer[x * 3 + 2] = 0;
+            row_buffer[x * 3 + 1] = grid[x][cinfo.next_scanline] ? 255 : 0;
         }
-
         jpeg_write_scanlines(&cinfo, &row_buffer, 1);
-        delete[] row_buffer;
     }
-
-    jpeg_finish_compress(&cinfo);
+    jpeg_finish_compress(&cinfo);    
     fclose(outfile);
     jpeg_destroy_compress(&cinfo);
-
-
-
+    // free(row_buffer);
+    
 }
 
 
@@ -137,20 +130,26 @@ int main (int argc, char *argv[]) {
 
     std::cout << grid[0].size() << std::endl;
 
-    bufferGrid = init_grid(bufferGrid);
-
+    bufferGrid = init_grid(bufferGrid);  
+    
 
     while (1) {
+        auto start = std::chrono::high_resolution_clock::now();
         bufferGrid = new_generation(bufferGrid);
-
+        auto new_gen = std::chrono::high_resolution_clock::now();
+        auto new_gen_dur = std::chrono::duration_cast<std::chrono::microseconds>(new_gen-start);
         export_jpg(bufferGrid);
+        auto exporting = std::chrono::high_resolution_clock::now();
+        auto exporting_dur = std::chrono::duration_cast<std::chrono::microseconds>(exporting-new_gen);
+
+        std::cout << "new gen duration \t->" <<  new_gen_dur.count() << " microseconds" << std::endl;
+        std::cout << "exporting duration \t->" <<  exporting_dur.count() << " microseconds" << std::endl;
+
         system("gsettings set org.gnome.desktop.background picture-uri 'file:///home/uomosucco/Desktop/dev/swg_bg/swg_test.jpg'");
 
         system("sleep 3");
 
-    }
-
-    
+    }   
 
     return 0;
 }
